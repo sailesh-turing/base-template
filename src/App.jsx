@@ -2,22 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Rocket, Star } from 'lucide-react';
 
 const generateRandomAngle = () => Math.floor(Math.random() * 181);
 
 const AnglePie = ({ angle }) => (
-  <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-full bg-slate-800 relative shadow-lg overflow-hidden">
+  <div className="w-48 h-48 sm:w-64 sm:h-64 rounded-full bg-slate-800 relative shadow-lg overflow-hidden">
     <div
       className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-purple-500 to-indigo-500"
       style={{
-        clipPath: `path('M 80 80 L 160 80 A 80 80 0 ${angle > 180 ? 1 : 0} 0 ${
-          80 + 80 * Math.cos((angle * Math.PI) / 180)
-        } ${80 - 80 * Math.sin((angle * Math.PI) / 180)} Z')`,
+        clipPath: `path('M 96 96 L 192 96 A 96 96 0 ${angle > 180 ? 1 : 0} 0 ${96 + 96 * Math.cos((angle * Math.PI) / 180)
+          } ${96 - 96 * Math.sin((angle * Math.PI) / 180)} Z')`,
       }}
     />
     <div className="absolute top-1/2 right-0 h-0.5 w-1/2 bg-white opacity-50 transform translate-y-[-50%] origin-left" />
-    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-2xl sm:text-3xl font-bold text-white">
+    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-3xl sm:text-4xl font-bold text-white">
       ?°
     </div>
   </div>
@@ -87,7 +85,7 @@ export default function AngleGuessingGame() {
 
   const handleRoundEnd = () => {
     const playerGuess = parseInt(inputs[currentPlayer], 10);
-    const difference = Math.abs(playerGuess - currentAngle);
+    const difference = isNaN(playerGuess) ? currentAngle : Math.abs(playerGuess - currentAngle);
     setScores(prev => ({ ...prev, [currentPlayer]: prev[currentPlayer] + difference }));
     setLastRoundResult({ actual: currentAngle, guess: playerGuess, difference });
 
@@ -106,7 +104,7 @@ export default function AngleGuessingGame() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-2 sm:p-4 space-y-4">
-      <div className="max-w-2xl mx-auto space-y-4 relative z-10">
+      <div className="max-w-3xl mx-auto space-y-4 relative z-10">
         <Card className="bg-slate-800 border-none shadow-xl">
           <CardHeader className="p-2 sm:p-4">
             <CardTitle className="text-2xl sm:text-3xl text-center text-white font-extrabold">
@@ -114,8 +112,8 @@ export default function AngleGuessingGame() {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex justify-center p-2 sm:p-4">
-            <Button 
-              onClick={startGame} 
+            <Button
+              onClick={startGame}
               disabled={gameState === 'playing'}
               className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-bold text-sm sm:text-base px-4 py-2 rounded-md shadow-lg transform transition hover:scale-105"
             >
@@ -127,14 +125,40 @@ export default function AngleGuessingGame() {
         {gameState !== 'idle' && (
           <>
             <Card className="bg-slate-800 border-none shadow-xl">
-              <CardContent className="flex flex-col items-center space-y-4 p-2 sm:p-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-indigo-300">Round {currentRound}</h2>
+              <CardContent className="flex flex-col items-center space-y-4 p-4 sm:p-6">
                 <AnglePie angle={currentAngle} />
                 <div className="text-2xl sm:text-3xl font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-1 rounded-md shadow-md">
                   {countdown}s
                 </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-indigo-300">Round {currentRound}</h2>
               </CardContent>
             </Card>
+
+            {lastRoundResult && (
+              <Card className="bg-slate-800 border-none shadow-lg">
+                <CardContent className="p-2 sm:p-4">
+                  <div className="flex items-center justify-center space-x-2">
+                    <p className="text-sm sm:text-base font-bold text-white">
+                      Actual: {lastRoundResult.actual}°,
+                      Guess: {lastRoundResult.guess}°,
+                      Diff: {lastRoundResult.difference}°
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {winner && (
+              <Card className="bg-gradient-to-r from-indigo-500 to-purple-500 border-none shadow-xl">
+                <CardContent className="p-2 sm:p-4">
+                  <div className="flex items-center justify-center space-x-2">
+                    <p className="text-lg sm:text-xl font-extrabold text-white">
+                      Player {winner} Wins the Mission!
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="flex space-x-2 sm:space-x-4">
               <PlayerArea
@@ -154,34 +178,6 @@ export default function AngleGuessingGame() {
                 disabled={currentPlayer !== 2 || gameState !== 'playing'}
               />
             </div>
-
-            {lastRoundResult && (
-              <Card className="bg-slate-800 border-none shadow-lg">
-                <CardContent className="p-2 sm:p-4">
-                  <div className="flex items-center space-x-2">
-                    <Star className="text-yellow-400 w-4 h-4 sm:w-6 sm:h-6" />
-                    <p className="text-sm sm:text-base font-bold text-white">
-                      Actual: {lastRoundResult.actual}°, 
-                      Guess: {lastRoundResult.guess}°, 
-                      Diff: {lastRoundResult.difference}°
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {winner && (
-              <Card className="bg-gradient-to-r from-indigo-500 to-purple-500 border-none shadow-xl">
-                <CardContent className="p-2 sm:p-4">
-                  <div className="flex items-center justify-center space-x-2">
-                    <Rocket className="text-white animate-pulse w-6 h-6 sm:w-8 sm:h-8" />
-                    <p className="text-lg sm:text-xl font-extrabold text-white">
-                      Player {winner} Wins the Mission!
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </>
         )}
       </div>
