@@ -27,39 +27,30 @@ const AlphabetBox = ({ letter, onDragStart, onTouchStart, id, isDraggable }) => 
       draggable={isDraggable}
       onDragStart={handleDragStart}
       onTouchStart={(e) => onTouchStart(e, letter)}
-      className={`w-16 h-16 flex items-center justify-center text-2xl font-bold bg-white border-2 border-gray-300 rounded-lg shadow-md transform transition-transform hover:scale-105 ${isDraggable ? 'cursor-move' : ''}`}
+      className={`w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-xl sm:text-2xl font-bold bg-white border-2 border-gray-300 rounded-lg shadow-md transform transition-transform hover:scale-105 ${isDraggable ? 'cursor-move' : ''}`}
     >
       {letter}
     </div>
   );
 };
 
-const DroppableBox = ({ letter, onDrop, id }) => {
-  const [isOver, setIsOver] = useState(false);
-
+const DroppableBox = ({ letter, onDrop, id, isOver }) => {
   const handleDragOver = (e) => {
     e.preventDefault();
-    setIsOver(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsOver(false);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     const letter = e.dataTransfer.getData('text/plain');
     onDrop(letter);
-    setIsOver(false);
   };
 
   return (
     <div
       id={id}
       onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`w-16 h-16 border-2 rounded-lg flex items-center justify-center ${
+      className={`w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-lg flex items-center justify-center ${
         isOver ? 'border-blue-500 bg-blue-100' : 'border-gray-300 bg-gray-100'
       } ${!letter ? 'bg-opacity-50' : ''}`}
     >
@@ -75,6 +66,7 @@ const GameBoard = () => {
   const [timeLeft, setTimeLeft] = useState(30);
   const [result, setResult] = useState('');
   const [draggedLetter, setDraggedLetter] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
   const boardRef = useRef(null);
   const touchStartPos = useRef(null);
 
@@ -108,15 +100,16 @@ const GameBoard = () => {
   };
 
   const handleDrop = (letter, index) => {
-    if (!answer[index]) {
+    if (!answer[index] && draggedLetter) {
       setAnswer((prev) => {
         const newAnswer = [...prev];
-        newAnswer[index] = letter;
+        newAnswer[index] = draggedLetter;
         return newAnswer;
       });
-      setAlphabets((prev) => prev.filter((l) => l !== letter));
+      setAlphabets((prev) => prev.filter((l) => l !== draggedLetter));
     }
     setDraggedLetter(null);
+    setDragOverIndex(null);
   };
 
   const handleTouchStart = (e, letter) => {
@@ -132,7 +125,6 @@ const GameBoard = () => {
     const diffX = Math.abs(touch.clientX - touchStartPos.current.x);
     const diffY = Math.abs(touch.clientY - touchStartPos.current.y);
 
-    // Only prevent default if we're sure it's a drag and not a scroll
     if (diffX > 10 || diffY > 10) {
       e.preventDefault();
     }
@@ -140,12 +132,18 @@ const GameBoard = () => {
     const draggedOverElement = document.elementFromPoint(touch.clientX, touch.clientY);
     if (draggedOverElement && draggedOverElement.id.startsWith('answer-')) {
       const index = parseInt(draggedOverElement.id.split('-')[1]);
-      handleDrop(draggedLetter, index);
+      setDragOverIndex(index);
+    } else {
+      setDragOverIndex(null);
     }
   }, [draggedLetter]);
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
+    if (dragOverIndex !== null && draggedLetter) {
+      handleDrop(draggedLetter, dragOverIndex);
+    }
     setDraggedLetter(null);
+    setDragOverIndex(null);
     touchStartPos.current = null;
   };
 
@@ -159,28 +157,28 @@ const GameBoard = () => {
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [draggedLetter, handleTouchMove]);
+  }, [draggedLetter, handleTouchMove, dragOverIndex]);
 
   return (
-    <Card className="w-full max-w-2xl mx-auto mt-8">
+    <Card className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto mt-8">
       <CardHeader>
-        <CardTitle className="text-3xl font-bold text-center">Alphabet Arrangement Game</CardTitle>
+        <CardTitle className="text-2xl sm:text-3xl font-bold text-center">Alphabet Arrangement Game</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center space-y-6" ref={boardRef}>
           <Button
             onClick={startGame}
             disabled={gameState === 'playing'}
-            className="px-6 py-2 text-lg"
+            className="px-4 py-2 text-base sm:px-6 sm:py-2 sm:text-lg"
           >
             {gameState === 'idle' ? 'Play' : 'Play Again'}
           </Button>
 
           {gameState !== 'idle' && (
             <>
-              <div className="text-2xl font-semibold">Time Left: {timeLeft}s</div>
+              <div className="text-xl sm:text-2xl font-semibold">Time Left: {timeLeft}s</div>
 
-              <div className="flex flex-wrap justify-center gap-4">
+              <div className="flex justify-center gap-2 sm:gap-4">
                 {alphabets.map((letter, index) => (
                   <AlphabetBox
                     key={index}
@@ -193,19 +191,20 @@ const GameBoard = () => {
                 ))}
               </div>
 
-              <div className="flex flex-wrap justify-center gap-4">
+              <div className="flex justify-center gap-2 sm:gap-4">
                 {answer.map((letter, index) => (
                   <DroppableBox
                     key={index}
                     id={`answer-${index}`}
                     letter={letter}
                     onDrop={(droppedLetter) => handleDrop(droppedLetter, index)}
+                    isOver={dragOverIndex === index}
                   />
                 ))}
               </div>
 
               {result && (
-                <div className={`text-2xl font-bold ${result === 'You won!' ? 'text-green-500' : 'text-red-500'}`}>
+                <div className={`text-xl sm:text-2xl font-bold ${result === 'You won!' ? 'text-green-500' : 'text-red-500'}`}>
                   {result}
                 </div>
               )}
